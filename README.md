@@ -298,6 +298,11 @@ var states = new List<ToastState>
 };
 
 string workflowId = ToastService.ShowStatefulToast(states, startImmediately: true, size: ToastSize.Large);
+var toast = ToastService.GetToast(toastId);
+if (toast != null)
+{
+    toast.ShowNavigation = false;
+}
 
 // Navigate workflow programmatically
 ToastService.TransitionToNextState(workflowId);
