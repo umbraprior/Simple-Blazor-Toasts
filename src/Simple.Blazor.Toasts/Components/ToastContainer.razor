@@ -1,0 +1,114 @@
+@inject ToastService ToastService
+@implements IDisposable
+
+@namespace Simple.Blazor.Toasts.Components
+
+<div style="@GetContainerStyle()">
+    @foreach (var toast in ToastService.Toasts)
+    {
+        <div style="@GetToastItemStyle(toast.IsVisible)">
+            <Toast ToastItem="@toast" />
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Console.WriteLine("ToastContainer initialized");
+        ToastService.OnToastsChanged += HandleToastsChanged;
+    }
+
+    private void HandleToastsChanged()
+    {
+        // Use InvokeAsync to ensure UI updates happen on the correct thread
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetContainerStyle()
+    {
+        var baseStyle = "position: fixed; z-index: 9999; pointer-events: none; display: flex; flex-direction: column;";
+        
+        return ToastService.Position switch
+        {
+            ToastPosition.TopLeft => baseStyle + " top: 20px; left: 20px; align-items: flex-start;",
+            ToastPosition.TopCenter => baseStyle + " top: 20px; left: 50%; transform: translateX(-50%); align-items: center;",
+            ToastPosition.TopRight => baseStyle + " top: 20px; right: 20px; align-items: flex-end;",
+            ToastPosition.BottomLeft => baseStyle + " bottom: 20px; left: 20px; align-items: flex-start; flex-direction: column-reverse;",
+            ToastPosition.BottomCenter => baseStyle + " bottom: 20px; left: 50%; transform: translateX(-50%); align-items: center; flex-direction: column-reverse;",
+            ToastPosition.BottomRight => baseStyle + " bottom: 20px; right: 20px; align-items: flex-end; flex-direction: column-reverse;",
+            _ => baseStyle + " top: 20px; right: 20px; align-items: flex-end;" // Default to TopRight
+        };
+    }
+
+    private string GetToastItemStyle(bool isVisible)
+    {
+        var baseStyle = "margin-bottom: 10px; pointer-events: auto; transition: all 0.3s ease-in-out;";
+        
+        return ToastService.Animation switch
+        {
+            ToastAnimation.Slide => baseStyle + GetSlideAnimation(isVisible),
+            ToastAnimation.Fade => baseStyle + GetFadeAnimation(isVisible),
+            ToastAnimation.SlideAndFade => baseStyle + GetSlideAndFadeAnimation(isVisible),
+            ToastAnimation.Scale => baseStyle + GetScaleAnimation(isVisible),
+            ToastAnimation.SlideAndScale => baseStyle + GetSlideAndScaleAnimation(isVisible),
+            _ => baseStyle + GetSlideAndFadeAnimation(isVisible) // Default
+        };
+    }
+
+    private string GetSlideAnimation(bool isVisible)
+    {
+        var transform = GetSlideTransform(isVisible);
+        return $" opacity: 1; transform: {transform};";
+    }
+
+    private string GetFadeAnimation(bool isVisible)
+    {
+        return $" opacity: {(isVisible ? "1" : "0")}; transform: translate(0, 0);";
+    }
+
+    private string GetSlideAndFadeAnimation(bool isVisible)
+    {
+        var transform = GetSlideTransform(isVisible);
+        var opacity = isVisible ? "1" : "0";
+        return $" opacity: {opacity}; transform: {transform};";
+    }
+
+    private string GetScaleAnimation(bool isVisible)
+    {
+        var scale = isVisible ? "1" : "0.8";
+        var opacity = isVisible ? "1" : "0";
+        return $" opacity: {opacity}; transform: translate(0, 0) scale({scale});";
+    }
+
+    private string GetSlideAndScaleAnimation(bool isVisible)
+    {
+        var slideTransform = GetSlideTransform(isVisible);
+        var scale = isVisible ? "1" : "0.9";
+        var opacity = isVisible ? "1" : "0";
+        // Combine slide and scale transforms
+        var combinedTransform = isVisible ? 
+            $"{slideTransform} scale({scale})" : 
+            $"{slideTransform} scale({scale})";
+        return $" opacity: {opacity}; transform: {combinedTransform};";
+    }
+
+    private string GetSlideTransform(bool isVisible)
+    {
+        if (isVisible) return "translate(0, 0)";
+        
+        return ToastService.Position switch
+        {
+            ToastPosition.TopLeft or ToastPosition.BottomLeft => "translateX(-100%)",
+            ToastPosition.TopCenter => "translateY(-100%)",
+            ToastPosition.BottomCenter => "translateY(100%)",
+            ToastPosition.TopRight or ToastPosition.BottomRight => "translateX(100%)",
+            _ => "translateX(100%)" // Default
+        };
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnToastsChanged -= HandleToastsChanged;
+    }
+} 

@@ -1,0 +1,637 @@
+@inject ToastService ToastService
+@implements IDisposable
+
+@namespace Simple.Blazor.Toasts.Components
+
+<div class="toast-item @GetToastTypeClass() @GetSizeClass()" 
+     style="@GetToastContainerStyle()">
+    
+    <!-- Close Button -->
+    <button type="button" 
+            style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 18px; color: @GetCloseButtonColor(); cursor: pointer; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"
+            @onclick="() => ToastService.RemoveToast(ToastItem.Id)">
+        ×
+    </button>
+    
+    <!-- Icon -->
+    <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+        <div style="margin-right: 12px; flex-shrink: 0;">
+            @GetToastIcon()
+        </div>
+        <div style="flex: 1; min-width: 0;">
+            <!-- Title -->
+            @if (!string.IsNullOrEmpty(ToastItem.Title))
+            {
+                <h6 style="margin: 0 0 8px 0; font-weight: 600; color: @GetTitleColor(); font-size: 14px;">
+                    @ToastItem.Title
+                    @if (ToastService.IsToastActive(ToastItem.Id))
+                    {
+                        <span style="margin-left: 8px; font-size: 10px; color: @GetAccentColor(); font-weight: 500;">⏰ ACTIVE</span>
+                    }
+                </h6>
+            }
+            
+            <!-- Message -->
+            @if (!string.IsNullOrEmpty(ToastItem.Message))
+            {
+                <div style="margin: 0; color: @GetMessageColor(); font-size: 13px; line-height: 1.4;">
+                    @((MarkupString)ToastItem.Message)
+                </div>
+            }
+        </div>
+    </div>
+    
+    <!-- Stateful Toast Navigation -->
+    @if (ToastItem.IsStateful && ToastItem.ShowNavigation)
+    {
+        <div style="margin-bottom: 12px;">
+            <!-- State Progress Indicator -->
+            <div style="display: flex; align-items: center; margin-bottom: 8px; font-size: 11px; color: @GetSecondaryTextColor();">
+                <span>Step @(ToastItem.CurrentStateIndex + 1) of @ToastItem.States.Count</span>
+                @if (ToastItem.SkippedStates.Count > 0)
+                {
+                    <span style="margin-left: 8px; color: @GetSkippedStateColor();">(@ToastItem.SkippedStates.Count skipped)</span>
+                }
+            </div>
+            
+            <!-- State Progress Dots -->
+            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                @for (int i = 0; i < ToastItem.States.Count; i++)
+                {
+                    var stateIndex = i;
+                    var isSkipped = ToastItem.IsStateSkipped(stateIndex);
+                    var isCurrent = stateIndex == ToastItem.CurrentStateIndex;
+                    var isCompleted = stateIndex < ToastItem.CurrentStateIndex && !isSkipped;
+                    
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background-color: @GetProgressDotColor(isSkipped, isCurrent, isCompleted); transition: all 0.2s;"></div>
+                }
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <button type="button" 
+                        disabled="@(!ToastItem.CanNavigatePrevious)"
+                        style="@GetNavigationButtonStyle(ToastItem.CanNavigatePrevious)"
+                        @onclick="() => ToastItem.NavigateToPrevious()">
+                    ← Previous
+                </button>
+                
+                <button type="button" 
+                        disabled="@(!ToastItem.CanNavigateNext)"
+                        style="@GetNavigationButtonStyle(ToastItem.CanNavigateNext)"
+                        @onclick="() => ToastItem.NavigateToNext()">
+                    Next →
+                </button>
+                
+                <span style="margin-left: auto; font-size: 11px; color: @GetSecondaryTextColor(); padding: 4px 0;">
+                    @ToastItem.GetRemainingStates() remaining
+                </span>
+            </div>
+        </div>
+    }
+    
+    <!-- Progress Bar (only for non-stateful toasts with timeout) -->
+    @if (ToastItem.ShowProgress)
+    {
+        <div style="width: 100%; height: 3px; background-color: @GetProgressBackgroundColor(); border-radius: 1px; margin-bottom: 12px; overflow: hidden;">
+            <div style="height: 100%; background-color: @GetProgressColor(); width: @(ToastItem.Progress)%; transition: width 0.1s linear; border-radius: 1px;"></div>
+        </div>
+    }
+    
+    <!-- Action Buttons -->
+    @if (ToastItem.Buttons.Count > 0)
+    {
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+            @foreach (var button in ToastItem.Buttons)
+            {
+                <button type="button" 
+                        class="@GetActionButtonClass(button)"
+                        disabled="@button.IsDisabled"
+                        style="@GetActionButtonStyle(button)"
+                        @onclick="() => HandleButtonClick(button)">
+                    @button.Text
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] 
+    public required ToastItem ToastItem { get; set; }
+    
+    protected override void OnInitialized()
+    {
+        ToastItem.PropertyChanged += OnToastPropertyChanged;
+    }
+    
+    private async void OnToastPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    public void Dispose()
+    {
+        ToastItem.PropertyChanged -= OnToastPropertyChanged;
+    }
+    
+    private void HandleButtonClick(ToastButton button)
+    {
+        bool navigationOccurred = false;
+        
+        // Handle advanced navigation first
+        if (ToastItem.IsStateful)
+        {
+            navigationOccurred = HandleAdvancedNavigation(button);
+        }
+        
+        // Execute custom click handler
+        button.OnClick?.Invoke(ToastItem.Id);
+        
+        // Only close toast if configured to do so AND no navigation occurred for stateful toasts
+        if (button.CloseToastOnClick && (!ToastItem.IsStateful || !navigationOccurred))
+        {
+            ToastService.RemoveToast(ToastItem.Id);
+        }
+    }
+    
+    private bool HandleAdvancedNavigation(ToastButton button)
+    {
+        if (!ToastItem.IsStateful) return false;
+        
+        bool navigationPerformed = false;
+        
+        // Handle conditional targeting
+        if (button.ConditionalTarget != null)
+        {
+            var targetIndex = button.ConditionalTarget(ToastItem.Id);
+            navigationPerformed = ToastService.TransitionToState(ToastItem.Id, targetIndex);
+        }
+        // Handle direct state targeting
+        else if (button.TargetStateIndex.HasValue)
+        {
+            navigationPerformed = ToastService.TransitionToState(ToastItem.Id, button.TargetStateIndex.Value);
+        }
+        // Handle state skipping
+        else if (button.SkipStates.Count > 0)
+        {
+            ToastItem.SkipStates(button.SkipStates);
+            navigationPerformed = true;
+            
+            // If AdvanceToNext is also set, move to next non-skipped state
+            if (button.AdvanceToNext)
+            {
+                ToastService.TransitionToNextState(ToastItem.Id);
+            }
+        }
+        // Handle simple advancement
+        else if (button.AdvanceToNext)
+        {
+            navigationPerformed = ToastService.TransitionToNextState(ToastItem.Id);
+        }
+        
+        return navigationPerformed;
+    }
+    
+    private string GetToastTypeClass()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "toast-default",
+            ToastType.Success => "toast-success",
+            ToastType.Warning => "toast-warning", 
+            ToastType.Error => "toast-error",
+            ToastType.Info => "toast-info",
+            _ => "toast-default"
+        };
+    }
+    
+    private string GetSizeClass()
+    {
+        return ToastItem.Size switch
+        {
+            ToastSize.Small => "toast-small",
+            ToastSize.Medium => "toast-medium",
+            ToastSize.Large => "toast-large",
+            _ => "toast-medium"
+        };
+    }
+    
+    private int GetToastWidth()
+    {
+        return ToastItem.Size switch
+        {
+            ToastSize.Small => 280,
+            ToastSize.Medium => 400, 
+            ToastSize.Large => 600,
+            _ => 400
+        };
+    }
+    
+    private string GetBorderColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => GetLightBorderColor(),
+            ToastTheme.Dark => GetDarkBorderColor(),
+            ToastTheme.Colored => "rgba(255, 255, 255, 0.2)",
+            _ => GetLightBorderColor()
+        };
+    }
+    
+    private string GetLightBorderColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#dbeafe",
+            ToastType.Success => "#d1fae5",
+            ToastType.Warning => "#ffe0b3",
+            ToastType.Error => "#fee2e2", 
+            ToastType.Info => "#e1bee7",
+            _ => "#dbeafe"
+        };
+    }
+    
+    private string GetDarkBorderColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#1e40af",
+            ToastType.Success => "#065f46",
+            ToastType.Warning => "#E65100",
+            ToastType.Error => "#991b1b", 
+            ToastType.Info => "#4A148C",
+            _ => "#1e40af"
+        };
+    }
+
+    private string GetBorderStyle()
+    {
+        var isActive = ToastService.IsToastActive(ToastItem.Id);
+        var borderColor = GetBorderColor();
+        
+        if (ToastService.Theme == ToastTheme.Colored)
+        {
+            return $"border: 1px solid {borderColor};";
+        }
+        
+        if (isActive)
+        {
+            // Active toast gets a thicker, more prominent border with a subtle glow
+            return $"border: 2px solid {borderColor}; box-shadow: 0 0 0 1px {borderColor}40;";
+        }
+        else
+        {
+            // Non-active toasts get a regular border
+            return $"border: 1px solid {borderColor};";
+        }
+    }
+    
+    private string GetProgressColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => GetLightProgressColor(),
+            ToastTheme.Dark => GetDarkProgressColor(),
+            ToastTheme.Colored => "#ffffff",
+            _ => GetLightProgressColor()
+        };
+    }
+    
+    private string GetLightProgressColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#3b82f6",
+            ToastType.Success => "#059669",
+            ToastType.Warning => "#FF9800",
+            ToastType.Error => "#ef4444",
+            ToastType.Info => "#673AB7",
+            _ => "#3b82f6"
+        };
+    }
+    
+    private string GetDarkProgressColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#60a5fa",
+            ToastType.Success => "#34d399",
+            ToastType.Warning => "#FF9800",
+            ToastType.Error => "#f87171",
+            ToastType.Info => "#9C27B0",
+            _ => "#60a5fa"
+        };
+    }
+    
+    private MarkupString GetToastIcon()
+    {
+        var iconColor = GetIconColor();
+        var iconSvg = ToastItem.Type switch
+        {
+            ToastType.Success => $"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{iconColor}" stroke-width="2"><path d="m9 12 2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>""",
+            ToastType.Warning => $"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{iconColor}" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="m12 17 .01 0"></path></svg>""",
+            ToastType.Error => $"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{iconColor}" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>""",
+            ToastType.Info => $"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{iconColor}" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="m12 16 .01 0"></path></svg>""",
+            _ => $"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{iconColor}" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="m12 8 .01 0"></path></svg>"""
+        };
+        
+        return new MarkupString(iconSvg);
+    }
+    
+    // Theme-based styling methods
+    private string GetToastContainerStyle()
+    {
+        var width = GetToastWidth();
+        var background = GetBackgroundColor();
+        var border = GetBorderStyle();
+        var shadow = GetShadowStyle();
+        var transform = ToastItem.IsTransitioning ? "transform: scale(0.95); opacity: 0.7;" : "transform: scale(1); opacity: 1;";
+        
+        return $"width: {width}px; position: relative; margin-bottom: 10px; border-radius: 8px; padding: 16px; background: {background}; {border} {shadow} {transform} transition: all 0.3s ease;";
+    }
+    
+    private string GetBackgroundColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#ffffff",
+            ToastTheme.Dark => "#2d3748",
+            ToastTheme.Colored => GetColoredBackground(),
+            _ => "#ffffff"
+        };
+    }
+    
+    private string GetColoredBackground()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#3b82f6", // Blue
+            ToastType.Success => "#059669", // Green
+            ToastType.Warning => "#FF9800", // Orange
+            ToastType.Error => "#ef4444", // Red
+            ToastType.Info => "#673AB7", // Purple
+            _ => "#3b82f6" // Blue (fallback)
+        };
+    }
+    
+    private string GetTitleColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#1a202c",
+            ToastTheme.Dark => "#f7fafc",
+            ToastTheme.Colored => "#ffffff",
+            _ => "#1a202c"
+        };
+    }
+    
+    private string GetMessageColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#4a5568",
+            ToastTheme.Dark => "#cbd5e0",
+            ToastTheme.Colored => "#f0f9ff",
+            _ => "#4a5568"
+        };
+    }
+    
+    private string GetCloseButtonColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#6b7280",
+            ToastTheme.Dark => "#9ca3af",
+            ToastTheme.Colored => "#ffffff",
+            _ => "#6b7280"
+        };
+    }
+    
+    private string GetIconColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => GetLightIconColor(),
+            ToastTheme.Dark => GetDarkIconColor(),
+            ToastTheme.Colored => "#ffffff",
+            _ => GetLightIconColor()
+        };
+    }
+    
+    private string GetLightIconColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#3b82f6",
+            ToastType.Success => "#059669",
+            ToastType.Warning => "#FF9800",
+            ToastType.Error => "#ef4444",
+            ToastType.Info => "#673AB7",
+            _ => "#3b82f6"
+        };
+    }
+    
+    private string GetDarkIconColor()
+    {
+        return ToastItem.Type switch
+        {
+            ToastType.Default => "#60a5fa",
+            ToastType.Success => "#34d399",
+            ToastType.Warning => "#FF9800",
+            ToastType.Error => "#f87171",
+            ToastType.Info => "#9C27B0",
+            _ => "#60a5fa"
+        };
+    }
+    
+    private string GetAccentColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#3b82f6",
+            ToastTheme.Dark => "#60a5fa",
+            ToastTheme.Colored => "#ffffff",
+            _ => "#3b82f6"
+        };
+    }
+    
+    private string GetProgressBackgroundColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#e5e7eb",
+            ToastTheme.Dark => "#4b5563",
+            ToastTheme.Colored => "rgba(255, 255, 255, 0.3)",
+            _ => "#e5e7eb"
+        };
+    }
+    
+    private string GetShadowStyle()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);",
+            ToastTheme.Dark => "box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);",
+            ToastTheme.Colored => "box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);",
+            _ => "box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);"
+        };
+    }
+    
+    // Internal content theming methods
+    private string GetSecondaryTextColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#6b7280",
+            ToastTheme.Dark => "#9ca3af",
+            ToastTheme.Colored => "rgba(255, 255, 255, 0.8)",
+            _ => "#6b7280"
+        };
+    }
+    
+    private string GetSkippedStateColor()
+    {
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#f59e0b",
+            ToastTheme.Dark => "#fbbf24",
+            ToastTheme.Colored => "rgba(255, 255, 255, 0.9)",
+            _ => "#f59e0b"
+        };
+    }
+    
+    private string GetProgressDotColor(bool isSkipped, bool isCurrent, bool isCompleted)
+    {
+        if (isSkipped)
+        {
+            return ToastService.Theme switch
+            {
+                ToastTheme.Light => "#f59e0b",
+                ToastTheme.Dark => "#fbbf24",
+                ToastTheme.Colored => "rgba(255, 255, 255, 0.7)",
+                _ => "#f59e0b"
+            };
+        }
+        
+        if (isCurrent)
+        {
+            return ToastService.Theme switch
+            {
+                ToastTheme.Light => "#3b82f6",
+                ToastTheme.Dark => "#60a5fa",
+                ToastTheme.Colored => "#ffffff",
+                _ => "#3b82f6"
+            };
+        }
+        
+        if (isCompleted)
+        {
+            return ToastService.Theme switch
+            {
+                ToastTheme.Light => "#10b981",
+                ToastTheme.Dark => "#34d399",
+                ToastTheme.Colored => "rgba(255, 255, 255, 0.9)",
+                _ => "#10b981"
+            };
+        }
+        
+        // Pending/inactive state
+        return ToastService.Theme switch
+        {
+            ToastTheme.Light => "#e5e7eb",
+            ToastTheme.Dark => "#4b5563",
+            ToastTheme.Colored => "rgba(255, 255, 255, 0.3)",
+            _ => "#e5e7eb"
+        };
+    }
+    
+    private string GetNavigationButtonStyle(bool isEnabled)
+    {
+        var baseStyle = "padding: 4px 8px; font-size: 11px; border-radius: 4px; font-weight: 500; transition: all 0.2s;";
+        var cursor = isEnabled ? "pointer" : "not-allowed";
+        var opacity = isEnabled ? "1" : "0.5";
+        
+        var themeStyle = ToastService.Theme switch
+        {
+            ToastTheme.Light => "border: 1px solid #d1d5db; background: #ffffff; color: #374151;",
+            ToastTheme.Dark => "border: 1px solid #4b5563; background: #374151; color: #f9fafb;",
+            ToastTheme.Colored => "border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1); color: #ffffff;",
+            _ => "border: 1px solid #d1d5db; background: #ffffff; color: #374151;"
+        };
+        
+        return $"{baseStyle} {themeStyle} cursor: {cursor}; opacity: {opacity};";
+    }
+    
+    private string GetActionButtonClass(ToastButton button)
+    {
+        // For Colored theme, we'll override Bootstrap classes with custom styling
+        if (ToastService.Theme == ToastTheme.Colored)
+        {
+            return ""; // Remove Bootstrap classes for colored theme
+        }
+        
+        // For Dark theme, we'll modify Bootstrap classes
+        if (ToastService.Theme == ToastTheme.Dark)
+        {
+            // Convert Bootstrap classes to dark equivalents
+            return button.CssClass?.Replace("btn-light", "btn-dark")
+                                   .Replace("btn-outline-light", "btn-outline-light") ?? "";
+        }
+        
+        // For Light theme, use original Bootstrap classes
+        return button.CssClass ?? "";
+    }
+    
+    private string GetActionButtonStyle(ToastButton button)
+    {
+        var baseStyle = "padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; transition: all 0.2s;";
+        var cursor = button.IsDisabled ? "not-allowed" : "pointer";
+        var opacity = button.IsDisabled ? "0.5" : "1";
+        
+        if (ToastService.Theme == ToastTheme.Colored)
+        {
+            // For colored theme, create custom button styling
+            var buttonTypeStyle = GetColoredButtonStyle(button);
+            return $"{baseStyle} {buttonTypeStyle} cursor: {cursor}; opacity: {opacity};";
+        }
+        
+        if (ToastService.Theme == ToastTheme.Dark)
+        {
+            // For dark theme, enhance Bootstrap with dark styling
+            var darkEnhancement = "filter: brightness(0.9);";
+            return $"{baseStyle} {darkEnhancement} cursor: {cursor}; opacity: {opacity};";
+        }
+        
+        // For light theme, use minimal custom styling
+        return $"{baseStyle} cursor: {cursor}; opacity: {opacity};";
+    }
+    
+    private string GetColoredButtonStyle(ToastButton button)
+    {
+        // Determine button type from CSS class
+        if (button.CssClass?.Contains("btn-primary") == true)
+        {
+            return "background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: #ffffff;";
+        }
+        if (button.CssClass?.Contains("btn-success") == true)
+        {
+            return "background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff;";
+        }
+        if (button.CssClass?.Contains("btn-warning") == true)
+        {
+            return "background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff;";
+        }
+        if (button.CssClass?.Contains("btn-danger") == true)
+        {
+            return "background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff;";
+        }
+        if (button.CssClass?.Contains("btn-outline") == true)
+        {
+            return "background: transparent; border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff;";
+        }
+        
+        // Default button style
+        return "background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ffffff;";
+    }
+} 

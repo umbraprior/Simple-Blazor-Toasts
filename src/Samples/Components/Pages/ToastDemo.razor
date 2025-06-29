@@ -1,0 +1,749 @@
+@page "/toast-demo"
+@using Laenk.App.Components.Toast
+@inject ToastService ToastService
+
+<PageTitle>Toast System Demo</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4 mb-2">🍞 Toast Notification System</h1>
+            <p class="lead text-muted mb-4">Comprehensive demonstration of all toast features</p>
+        </div>
+    </div>
+
+    <!-- System Controls -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">⚙️ System Controls</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Theme Control -->
+                    <div class="col-md-4">
+                        <label class="form-label">Theme:</label>
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn @(ToastService.Theme == ToastTheme.Light ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => ToastService.SetTheme(ToastTheme.Light)'>☀️ Light</button>
+                            <button class="btn @(ToastService.Theme == ToastTheme.Dark ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => ToastService.SetTheme(ToastTheme.Dark)'>🌙 Dark</button>
+                            <button class="btn @(ToastService.Theme == ToastTheme.Colored ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => ToastService.SetTheme(ToastTheme.Colored)'>🌈 Colored</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Position Control -->
+                    <div class="col-md-4">
+                        <label class="form-label">Position:</label>
+                        <select class="form-select form-select-sm" @onchange="OnPositionChanged">
+                            <option value="@ToastPosition.TopLeft" selected="@(ToastService.Position == ToastPosition.TopLeft)">Top Left</option>
+                            <option value="@ToastPosition.TopCenter" selected="@(ToastService.Position == ToastPosition.TopCenter)">Top Center</option>
+                            <option value="@ToastPosition.TopRight" selected="@(ToastService.Position == ToastPosition.TopRight)">Top Right</option>
+                            <option value="@ToastPosition.BottomLeft" selected="@(ToastService.Position == ToastPosition.BottomLeft)">Bottom Left</option>
+                            <option value="@ToastPosition.BottomCenter" selected="@(ToastService.Position == ToastPosition.BottomCenter)">Bottom Center</option>
+                            <option value="@ToastPosition.BottomRight" selected="@(ToastService.Position == ToastPosition.BottomRight)">Bottom Right</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Queue Control -->
+                    <div class="col-md-4">
+                        <label class="form-label">Max Visible: @ToastService.MaxVisibleToasts</label>
+                        <input type="range" class="form-range" min="1" max="10" value="@ToastService.MaxVisibleToasts" @onchange="OnQueueSizeChanged" />
+                        <small class="text-muted">Queue: @ToastService.QueuedCount waiting</small>
+                    </div>
+                </div>
+                
+                <!-- Animation Controls Row -->
+                <div class="row g-3 mt-2">
+                    <div class="col-md-12">
+                        <label class="form-label">Animation Style:</label>
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn @(ToastService.Animation == ToastAnimation.Slide ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => OnAnimationChanged(ToastAnimation.Slide)'>↔️ Slide</button>
+                            <button class="btn @(ToastService.Animation == ToastAnimation.Fade ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => OnAnimationChanged(ToastAnimation.Fade)'>✨ Fade</button>
+                            <button class="btn @(ToastService.Animation == ToastAnimation.SlideAndFade ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => OnAnimationChanged(ToastAnimation.SlideAndFade)'>🎭 Slide+Fade</button>
+                            <button class="btn @(ToastService.Animation == ToastAnimation.Scale ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => OnAnimationChanged(ToastAnimation.Scale)'>🔍 Scale</button>
+                            <button class="btn @(ToastService.Animation == ToastAnimation.SlideAndScale ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick='() => OnAnimationChanged(ToastAnimation.SlideAndScale)'>🎬 Slide+Scale</button>
+                        </div>
+                        <small class="text-muted d-block mt-1">Changes how toasts enter and exit the screen</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Basic Toast Types -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">📝 Basic Toast Types</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <button class="btn btn-success w-100" @onclick="ShowSuccessExample">
+                            ✅ Success Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">5 second timeout</small>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-info w-100" @onclick="ShowInfoExample">
+                            ℹ️ Info Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">5 second timeout</small>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-warning w-100" @onclick="ShowWarningExample">
+                            ⚠️ Warning Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">8 second timeout</small>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-danger w-100" @onclick="ShowErrorExample">
+                            ❌ Error Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">No timeout (persistent)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast Sizes -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">📏 Toast Sizes</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" @onclick="ShowSmallExample">
+                            📱 Small Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">280px wide - for quick alerts</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" @onclick="ShowMediumExample">
+                            💻 Medium Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">400px wide - standard size</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" @onclick="ShowLargeExample">
+                            🖥️ Large Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">600px wide - for complex content</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Toasts -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">🎯 Interactive Toasts</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-warning w-100" @onclick="ShowConfirmationExample">
+                            🤔 Confirmation Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">Yes/No decision required</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-info w-100" @onclick="ShowUndoExample">
+                            ↩️ Undo Action Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">Action with undo option</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-danger w-100" @onclick="ShowRetryExample">
+                            🔄 Retry Action Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">Failed action with retry</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stateful Toasts -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">🔄 Stateful Toasts</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" @onclick="ShowWorkflowExample">
+                            📋 Simple Workflow
+                        </button>
+                        <small class="text-muted d-block mt-1">Multi-step process example</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" @onclick="ShowProgressExample">
+                            📊 Progress Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">Auto-advancing progress steps</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-warning w-100" @onclick="ShowBranchingExample">
+                            🌳 Branching Workflow
+                        </button>
+                        <small class="text-muted d-block mt-1">Conditional navigation example</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Queue Management -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">🚦 Queue Management</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" @onclick="ShowQueueExample">
+                            📤 Queue Test
+                        </button>
+                        <small class="text-muted d-block mt-1">Show 8 toasts to test queueing</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-warning w-100" @onclick="ShowMixedQueueExample">
+                            🎭 Mixed Queue
+                        </button>
+                        <small class="text-muted d-block mt-1">Different types and timeouts</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-danger w-100" @onclick="() => ToastService.RemoveAll()">
+                            🗑️ Clear All
+                        </button>
+                        <small class="text-muted d-block mt-1">Remove all toasts and queue</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Advanced Features -->
+    <section class="mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">🚀 Advanced Features</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-info w-100" @onclick="ShowUpdateExample">
+                            📥 Update Workflow
+                        </button>
+                        <small class="text-muted d-block mt-1">App update with progress</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-secondary w-100" @onclick="ShowAnimationExample">
+                            🎬 Animation Demo
+                        </button>
+                        <small class="text-muted d-block mt-1">Visual effects showcase</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" @onclick="ShowPersistentExample">
+                            📌 Persistent Toast
+                        </button>
+                        <small class="text-muted d-block mt-1">No timeout, manual dismiss</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    // System Control Handlers
+    private void OnPositionChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<ToastPosition>(e.Value?.ToString(), out var position))
+        {
+            ToastService.SetPosition(position);
+            ToastService.ShowInfo($"Position changed to {position}", "System", 3, ToastSize.Small);
+        }
+    }
+
+    private void OnQueueSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var size))
+        {
+            ToastService.SetQueueSize(size);
+            ToastService.ShowInfo($"Queue size changed to {size}", "System", 3, ToastSize.Small);
+        }
+    }
+
+    private void OnAnimationChanged(ToastAnimation animation)
+    {
+        ToastService.SetAnimation(animation);
+        var animationName = animation switch
+        {
+            ToastAnimation.Slide => "Slide",
+            ToastAnimation.Fade => "Fade",
+            ToastAnimation.SlideAndFade => "Slide + Fade",
+            ToastAnimation.Scale => "Scale",
+            ToastAnimation.SlideAndScale => "Slide + Scale",
+            _ => animation.ToString()
+        };
+        ToastService.ShowInfo($"Animation changed to {animationName}", "System", 3, ToastSize.Small);
+    }
+
+    // Basic Toast Examples
+    private void ShowSuccessExample()
+    {
+        ToastService.ShowSuccess("Operation completed successfully! All data has been saved.", "Success", 5, ToastSize.Medium);
+    }
+
+    private void ShowInfoExample()
+    {
+        ToastService.ShowInfo("Here's some useful information about the current process.", "Information", 5, ToastSize.Medium);
+    }
+
+    private void ShowWarningExample()
+    {
+        ToastService.ShowWarning("Please review your input before continuing with this action.", "Warning", 8, ToastSize.Medium);
+    }
+
+    private void ShowErrorExample()
+    {
+        ToastService.ShowError("An error occurred while processing your request. Please try again.", "Error", null, ToastSize.Medium);
+    }
+
+    // Size Examples
+    private void ShowSmallExample()
+    {
+        ToastService.ShowDefault("Quick alert!", "Small", 4, ToastSize.Small);
+    }
+
+    private void ShowMediumExample()
+    {
+        ToastService.ShowDefault("This is a standard medium-sized toast with some additional content.", "Medium", 5, ToastSize.Medium);
+    }
+
+    private void ShowLargeExample()
+    {
+        ToastService.ShowDefault("This large toast can contain much more detailed information and complex content for comprehensive notifications.", "Large", 6, ToastSize.Large);
+    }
+
+    // Interactive Examples
+    private void ShowConfirmationExample()
+    {
+        ToastService.ShowConfirmation(
+            "Are you sure you want to delete this item? This action cannot be undone.",
+            "Delete Confirmation",
+            _ => ToastService.ShowSuccess("Item deleted successfully!", "Deleted", 3, ToastSize.Medium),
+            _ => ToastService.ShowInfo("Delete operation cancelled.", "Cancelled", 3, ToastSize.Medium),
+            15,
+            ToastSize.Medium
+        );
+    }
+
+    private void ShowUndoExample()
+    {
+        ToastService.ShowUndoAction(
+            "Email moved to trash. You have 10 seconds to undo this action.",
+            "Email Deleted",
+            _ => ToastService.ShowSuccess("Email restored to inbox!", "Restored", 3, ToastSize.Medium),
+            10,
+            ToastSize.Medium
+        );
+    }
+
+    private void ShowRetryExample()
+    {
+        ToastService.ShowRetryAction(
+            "Failed to connect to server. Check your internet connection and try again.",
+            "Connection Failed",
+            _ => ToastService.ShowInfo("Retrying connection...", "Retrying", 3, ToastSize.Medium),
+            null,
+            ToastSize.Medium
+        );
+    }
+
+    // Stateful Examples
+    private void ShowWorkflowExample()
+    {
+        var states = new List<ToastState>
+        {
+            new ToastState
+            {
+                Title = "📋 Step 1: Investigate",
+                Message = "You must read...",
+                Type = ToastType.Default,
+                Buttons = new List<ToastButton>(),
+            },
+            new ToastState
+            {
+                Title = "⚙️ Step 2: Consume",
+                Message = "all of the documentation...",
+                Type = ToastType.Warning,
+                Buttons = new List<ToastButton>(),
+            },
+            new ToastState
+            {
+                Title = "✅ Step 3: Digest",
+                Message = "to understand...",
+                Type = ToastType.Success,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "Done", CssClass = "btn btn-success btn-sm", CloseToastOnClick = true }
+                }
+            }
+        };
+
+        ToastService.ShowStatefulToast(states, true, ToastSize.Large);
+    }
+
+    private void ShowProgressExample()
+    {
+        var steps = new List<string>
+        {
+            "Initializing system...",
+            "Loading configuration...",
+            "Connecting to database...",
+            "Validating user permissions...",
+            "Setup complete!"
+        };
+
+        var toastId = ToastService.ShowProgressToast("System Initialization", steps, true, 2000, ToastSize.Medium);
+        var toast = ToastService.GetToast(toastId);
+        if (toast != null)
+        {
+            toast.ShowNavigation = false;
+        }
+    }
+
+    private void ShowBranchingExample()
+    {
+        var states = new List<ToastState>
+        {
+            new ToastState
+            {
+                Title = "🤔 Choose Your Path",
+                Message = "What would you like to do next?",
+                Type = ToastType.Default,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton 
+                    { 
+                        Text = "🚀 Quick Setup", 
+                        CssClass = "btn btn-primary btn-sm",
+                        TargetStateIndex = 1
+                    },
+                    new ToastButton 
+                    { 
+                        Text = "⚙️ Advanced Config", 
+                        CssClass = "btn btn-secondary btn-sm",
+                        TargetStateIndex = 2
+                    }
+                }
+            },
+            new ToastState
+            {
+                Title = "🚀 Quick Setup",
+                Message = "Using default settings for rapid deployment...",
+                Type = ToastType.Success,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "Complete", CssClass = "btn btn-success btn-sm", CloseToastOnClick = true }
+                }
+            },
+            new ToastState
+            {
+                Title = "⚙️ Advanced Configuration",
+                Message = "Configuring advanced options and custom settings...",
+                Type = ToastType.Warning,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "Save Config", CssClass = "btn btn-warning btn-sm", CloseToastOnClick = true }
+                }
+            }
+        };
+
+        var toastId = ToastService.ShowStatefulToast(states, true, ToastSize.Large);
+        var toast = ToastService.GetToast(toastId);
+        if (toast != null)
+        {
+            toast.ShowNavigation = false;
+        }
+    }
+
+    // Queue Management Examples
+    private void ShowQueueExample()
+    {
+        for (int i = 1; i <= 8; i++)
+        {
+            var type = i switch
+            {
+                1 or 5 => ToastType.Success,
+                2 or 6 => ToastType.Info,
+                3 or 7 => ToastType.Warning,
+                _ => ToastType.Error
+            };
+            
+            ToastService.ShowToast($"Queue test toast #{i}", type, $"Toast {i}", 4, ToastSize.Small);
+        }
+    }
+
+    private void ShowMixedQueueExample()
+    {
+        ToastService.ShowSuccess("Quick success message", "Success", 3, ToastSize.Small);
+        ToastService.ShowError("Critical error - no timeout", "Error", null, ToastSize.Medium);
+        ToastService.ShowWarning("Warning with long timeout", "Warning", 10, ToastSize.Medium);
+        ToastService.ShowInfo("Standard info message", "Info", 5, ToastSize.Small);
+        ToastService.ShowSuccess("Another success", "Success", 4, ToastSize.Large);
+    }
+
+    // Advanced Examples
+    private void ShowUpdateExample()
+    {
+        ShowSimplifiedUpdateWorkflow();
+    }
+
+    private void ShowAnimationExample()
+    {
+        ShowEnhancedVisualDemo();
+    }
+
+    private void ShowPersistentExample()
+    {
+        var toastId = ToastService.ShowInfo("This toast will remain visible until manually dismissed.", "Persistent Toast", null, ToastSize.Medium);
+        ToastService.MakePersistent(toastId);
+    }
+
+    // Existing complex methods (simplified versions)
+    private void ShowSimplifiedUpdateWorkflow()
+    {
+        var downloadId = Guid.NewGuid().ToString("N")[..8];
+        
+        var states = new List<ToastState>
+        {
+            new ToastState
+            {
+                Title = "✨ Update Available",
+                Message = GetUpdateAvailableMessage(),
+                Type = ToastType.Info,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "📥 Download", CssClass = "btn btn-primary btn-sm", AdvanceToNext = true },
+                    new ToastButton { Text = "⏰ Later", CssClass = "btn btn-outline-secondary btn-sm", CloseToastOnClick = true }
+                }
+            },
+            new ToastState
+            {
+                Title = "⬇️ Downloading",
+                Message = GetDynamicDownloadMessage(downloadId),
+                Type = ToastType.Info,
+                Buttons = new List<ToastButton>(),
+                AutoAdvanceAfterSeconds = 5
+            },
+            new ToastState
+            {
+                Title = "🎉 Complete!",
+                Message = GetCompletionMessage(),
+                Type = ToastType.Success,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "🔄 Restart", CssClass = "btn btn-success btn-sm", CloseToastOnClick = true }
+                }
+            }
+        };
+
+        var toastId = ToastService.ShowStatefulToast(states, true, ToastSize.Large);
+        var toast = ToastService.GetToast(toastId);
+        if (toast != null)
+        {
+            toast.ShowNavigation = false;
+        }
+    }
+
+    private void ShowEnhancedVisualDemo()
+    {
+        var states = new List<ToastState>
+        {
+            new ToastState
+            {
+                Title = "🎨 Visual Effects",
+                Message = GetSpinnerDemoMessage(),
+                Type = ToastType.Default,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "Next ➡️", CssClass = "btn btn-primary btn-sm", AdvanceToNext = true }
+                },
+                AutoAdvanceAfterSeconds = 4
+            },
+            new ToastState
+            {
+                Title = "🎉 Animations Complete",
+                Message = GetSuccessAnimationDemoMessage(),
+                Type = ToastType.Success,
+                Buttons = new List<ToastButton>
+                {
+                    new ToastButton { Text = "🎊 Amazing!", CssClass = "btn btn-success btn-sm", CloseToastOnClick = true }
+                }
+            }
+        };
+
+        var toastId = ToastService.ShowStatefulToast(states, true, ToastSize.Large);
+        var toast = ToastService.GetToast(toastId);
+        if (toast != null)
+        {
+            toast.ShowNavigation = false;
+        }
+    }
+
+    // Helper methods for complex content
+    private string GetUpdateAvailableMessage()
+    {
+        var secondaryStyle = ToastService.GetSecondaryTextStyle();
+        var infoBoxStyle = ToastService.GetContentBoxStyle("info");
+        
+        return $@"<div>
+                    <strong>Version 2.1.0 is available!</strong><br/>
+                    <span style='{secondaryStyle} font-size: 12px;'>Size: 125 MB • Released: Today</span>
+                </div>
+                <div style='{infoBoxStyle}'>
+                    <strong>What's New:</strong><br/>
+                    • 🔒 Critical security fixes<br/>
+                    • ⚡ Performance improvements<br/>
+                    • 🎨 New UI enhancements
+                </div>";
+    }
+
+    private string GetDynamicDownloadMessage(string downloadId)
+    {
+        var htmlContent = $@"<div>
+                    <div style=""margin-bottom: 8px;"">Downloading version 2.1.0...</div>
+                    <div class=""download-progress-container"" id=""download-{downloadId}"">
+                        <div class=""download-progress-bar"">
+                            <div class=""download-progress-fill"" id=""progress-fill-{downloadId}"" style=""width: 0%; transition: width 0.1s ease-out;""></div>
+                        </div>
+                        <div class=""download-stats"">
+                            <div class=""download-stat"">
+                                <span>📊</span> <span id=""progress-percent-{downloadId}"">0%</span>
+                            </div>
+                            <div class=""download-stat"">
+                                <span>💾</span> <span id=""progress-size-{downloadId}"">0 MB</span> / 125 MB
+                            </div>
+                            <div class=""download-stat"">
+                                <span>⚡</span> <span id=""progress-speed-{downloadId}"">0 MB/s</span>
+                            </div>
+                            <div class=""download-stat"">
+                                <span>⏱️</span> <span id=""progress-time-{downloadId}"">Calculating...</span>
+                            </div>
+                        </div>
+                        <div class=""download-stat"" style=""font-size: 11px; margin-top: 8px;"">
+                            Downloaded from: update-server.example.com
+                        </div>
+                    </div>
+                </div>";
+
+        var scriptContent = $@"<script>
+(function() {{
+    const downloadId = '{downloadId}';
+    const progressFill = document.getElementById('progress-fill-' + downloadId);
+    const progressPercent = document.getElementById('progress-percent-' + downloadId);
+    const progressSize = document.getElementById('progress-size-' + downloadId);
+    const progressSpeed = document.getElementById('progress-speed-' + downloadId);
+    const progressTime = document.getElementById('progress-time-' + downloadId);
+    
+    if (!progressFill) return;
+    
+    const progressValues = [0, 2, 5, 8, 12, 16, 20, 25, 30, 34, 38, 42, 46, 50, 53, 56, 60, 63, 66, 69, 72, 75, 77, 79, 81, 83, 85, 87, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100];
+    const sizeValues = progressValues.map(p => Math.round((p / 100) * 125));
+    const speedValues = [0, 8.2, 12.5, 15.8, 18.2, 16.9, 14.3, 19.1, 22.4, 20.1, 17.8, 21.6, 18.9, 16.2, 19.8, 23.1, 21.4, 18.7, 20.9, 17.3, 19.6, 21.8, 18.4, 16.1, 19.2, 20.7, 18.9, 17.2, 16.8, 15.4, 14.9, 13.2, 12.1, 10.8, 9.2, 7.6, 5.9, 3.2, 1.1];
+    const timeValues = ['Calculating...', '2m 30s', '2m 15s', '1m 58s', '1m 42s', '1m 38s', '1m 45s', '1m 28s', '1m 15s', '1m 22s', '1m 18s', '1m 05s', '1m 12s', '1m 08s', '58s', '52s', '48s', '44s', '41s', '38s', '35s', '32s', '29s', '26s', '24s', '22s', '20s', '18s', '16s', '14s', '12s', '10s', '9s', '8s', '6s', '5s', '3s', '2s', 'Done!'];
+    
+    let step = 0;
+    
+    const updateProgress = () => {{
+        if (step >= progressValues.length) return;
+        
+        const progress = progressValues[step];
+        const size = sizeValues[step];
+        const speed = speedValues[step];
+        const timeRemaining = timeValues[step];
+        
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressPercent) progressPercent.textContent = progress + '%';
+        if (progressSize) progressSize.textContent = size + ' MB';
+        if (progressSpeed) progressSpeed.textContent = speed.toFixed(1) + ' MB/s';
+        if (progressTime) progressTime.textContent = timeRemaining;
+        
+        step++;
+        
+        if (step < progressValues.length) {{
+            const nextDelay = step < 10 ? 150 : step < 25 ? 100 : step < 35 ? 80 : 60;
+            setTimeout(updateProgress, nextDelay);
+        }}
+    }};
+    
+    setTimeout(updateProgress, 200);
+}})();
+</script>";
+
+        return htmlContent + scriptContent;
+    }
+
+    private string GetCompletionMessage()
+    {
+        var successBoxStyle = ToastService.GetContentBoxStyle("success");
+        var secondaryStyle = ToastService.GetSecondaryTextStyle();
+        
+        return $@"<div>
+                    <div class='d-flex align-items-center' style='margin-bottom: 12px;'>
+                        <div class='success-checkmark'></div>
+                        <span><strong>Version 2.1.0 installed successfully!</strong></span>
+                    </div>
+                    <div style='{successBoxStyle}'>
+                        🔄 A restart is required to complete the update process.
+                    </div>
+                    <div style='font-size: 11px; {secondaryStyle} margin-top: 8px;'>
+                        💡 Tip: All work will be saved automatically.
+                    </div>
+                </div>";
+    }
+
+    private string GetSpinnerDemoMessage()
+    {
+        var infoBoxStyle = ToastService.GetContentBoxStyle("info");
+        
+        return $@"<div>
+                    <div class='d-flex align-items-center' style='margin-bottom: 12px;'>
+                        <div class='toast-spinner'></div>
+                        <span><strong>Loading Animation Demo</strong></span>
+                    </div>
+                    <div style='{infoBoxStyle}'>
+                        🌟 Demonstrating smooth animations and visual effects.
+                    </div>
+                </div>";
+    }
+
+    private string GetSuccessAnimationDemoMessage()
+    {
+        var successBoxStyle = ToastService.GetContentBoxStyle("success");
+        var secondaryStyle = ToastService.GetSecondaryTextStyle();
+        
+        return $@"<div>
+                    <div class='d-flex align-items-center' style='margin-bottom: 12px;'>
+                        <div class='success-checkmark'></div>
+                        <span><strong>Visual Effects Complete</strong></span>
+                    </div>
+                    <div style='{successBoxStyle}'>
+                        ✅ All animations use hardware acceleration for optimal performance.
+                    </div>
+                    <div style='font-size: 11px; {secondaryStyle} margin-top: 8px;'>
+                        🎨 Smooth CSS keyframe animations showcase complete!
+                    </div>
+                </div>";
+    }
+} 
