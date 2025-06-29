@@ -17,15 +17,21 @@ A comprehensive toast notification system for Blazor applications featuring:
 <details>
 <summary><strong>🎨 Toast Types & Themes</strong></summary>
 
-![Toast Types](https://github.com/umbraprior/Simple-Blazor-Toasts/src/Samples/Media/Mixed.png)
+![Mixed](https://github.com/user-attachments/assets/3fa0aca0-c153-40e3-ac71-a16696811e7b)
 
-![Toast Sizes](https://github.com/umbraprior/Simple-Blazor-Toasts/src/Samples/Media/Sizes.png)
 
-![Stateful Toasts](https://github.com/umbraprior/Simple-Blazor-Toasts/src/Samples/Media/Stateful.png)
+![Sizes](https://github.com/user-attachments/assets/13c6d453-2de7-437a-b6bb-5c131bc2445d)
 
-![Slide+Fade Animation](https://github.com/umbraprior/Simple-Blazor-Toasts/src/Samples/Media/slidefade.gif)
 
-![Scale Animation](https://github.com/umbraprior/Simple-Blazor-Toasts/src/Samples/Media/scale.gif)
+![Stateful](https://github.com/user-attachments/assets/8d27792a-0dec-406b-873a-2e1be1241eb8)
+
+
+![scale](https://github.com/user-attachments/assets/8593fe74-40d6-462b-ac98-74b0753e7cf9)
+
+
+![slidefade](https://github.com/user-attachments/assets/d3b3ad8d-0ad2-407c-b568-dbdad800ffd1)
+
+</details>
 
 ## Installation
 
