@@ -59,3 +59,5 @@ builder.Services.AddSimpleBlazorToasts();
     }
 }
 ```
+
+Take a look at the ***[sample page](https://github.com/umbraprior/Simple-Blazor-Toasts/blob/main/src/Samples/Components/Pages/ToastDemo.razor)***
