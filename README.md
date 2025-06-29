@@ -26,10 +26,7 @@ A comprehensive toast notification system for Blazor applications featuring:
 ![Stateful](https://github.com/user-attachments/assets/8d27792a-0dec-406b-873a-2e1be1241eb8)
 
 
-![scale](https://github.com/user-attachments/assets/8593fe74-40d6-462b-ac98-74b0753e7cf9)
-
-
-![slidefade](https://github.com/user-attachments/assets/d3b3ad8d-0ad2-407c-b568-dbdad800ffd1)
+![scale](https://github.com/user-attachments/assets/8593fe74-40d6-462b-ac98-74b0753e7cf9) ![slidefade](https://github.com/user-attachments/assets/d3b3ad8d-0ad2-407c-b568-dbdad800ffd1)
 
 </details>
 
