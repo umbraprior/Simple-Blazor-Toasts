@@ -5,14 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Simple.Blazor.Toasts</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageId>Simple-Blazor-Toasts</PackageId>
+    <PackageVersion>1.0.2</PackageVersion>
     <Authors>uprior</Authors>
     <Description>A comprehensive toast notification system for Blazor applications with stateful workflows, custom animations, and advanced features.</Description>
     <PackageTags>blazor;toast;notification;stateful;animation</PackageTags>
     <PackageProjectUrl>https://github.com/umbraprior/Simple-Blazor-Toasts</PackageProjectUrl>
     <RepositoryUrl>https://github.com/umbraprior/Simple-Blazor-Toasts</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
@@ -20,9 +20,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <StaticWebAsset Include="wwwroot\css\toast.css" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
