@@ -12,6 +12,8 @@ A comprehensive toast notification system for Blazor applications featuring:
 - 🎨 **Interactive Buttons**: Custom actions with presets
 - 📊 **Progress Tracking**: Visual progress bars and timers
 
+Check out the twin [modal dialog](https://github.com/umbraprior/Simple-Blazor-Dialogs) library!
+
 ## Preview Gallery
 
 <details>
